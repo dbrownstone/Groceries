@@ -40,9 +40,12 @@ class OnlineUsersTableViewController: UITableViewController {
     super.viewDidLoad()
     usersReference.observe(.value, with: {
       snapshot in
+      self.currentUsers = []
       for aUser in snapshot.children {
         let user = User(snapshot: aUser as! DataSnapshot)
-        self.currentUsers.append(user)
+        if user.isOnline! {
+          self.currentUsers.append(user)
+        }
       }
       self.tableView.reloadData()
     })
