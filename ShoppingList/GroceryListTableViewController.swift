@@ -95,10 +95,17 @@ class GroceryListTableViewController: UITableViewController {
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
     
+    var onlineCount = 0
     usersReference.observe(.value, with: {
       snapshot in
       if snapshot.exists() {
-        self.userCountBarButtonItem.title = "Online: " + snapshot.childrenCount.description
+        for aUser in snapshot.children {
+          let user = User(snapshot: aUser as! DataSnapshot)
+          if user.isOnline! {
+            onlineCount += 1
+          }
+        }
+        self.userCountBarButtonItem.title = "Online: \(onlineCount)"
       }
       self.userCountBarButtonItem.tintColor = UIColor.white
     })
