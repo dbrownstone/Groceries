@@ -95,13 +95,13 @@ class GroceryListTableViewController: UITableViewController {
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
     
-    var onlineCount = 0
     usersReference.observe(.value, with: {
       snapshot in
       if snapshot.exists() {
+        var onlineCount = 0
         for aUser in snapshot.children {
-          let user = User(snapshot: aUser as! DataSnapshot)
-          if user.isOnline! {
+          let snapshotValue = (aUser as! DataSnapshot).value as! [String: AnyObject]
+          if snapshotValue["online"] as! Bool {
             onlineCount += 1
           }
         }
@@ -116,12 +116,15 @@ class GroceryListTableViewController: UITableViewController {
     return items.count
   }
   
+  override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+    return 30.0
+  }
+  
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "ItemCell", for: indexPath)
     let groceryItem = items[indexPath.row]
     
     cell.textLabel?.text = groceryItem.name
-    cell.detailTextLabel?.text = groceryItem.addedByUser
     
     toggleCellCheckbox(cell, isCompleted: groceryItem.completed)
     
@@ -176,13 +179,12 @@ class GroceryListTableViewController: UITableViewController {
                                    style: .default) { action in
       let textField = alert.textFields![0] 
       let groceryItem = GroceryItem(name: textField.text!,
-                                    addedByUser: self.user.email!,
                                     completed: false)
       self.items.append(groceryItem)
       self.tableView.reloadData()
                                     
       let groceryItemRef = self.groceryItemsReference.child(textField.text!.lowercased())
-      let values: [String: Any] = [ "name": textField.text!.lowercased(), "addedByUser": self.user.firstName as Any, "completed": false]
+      let values: [String: Any] = [ "name": textField.text!.lowercased(), "completed": false]
       groceryItemRef.setValue(values)
     }
     
