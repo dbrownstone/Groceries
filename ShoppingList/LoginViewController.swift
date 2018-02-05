@@ -31,6 +31,7 @@ class LoginViewController: UIViewController {
   // MARK: Outlets
   @IBOutlet weak var textFieldLoginEmail: UITextField!
   @IBOutlet weak var textFieldLoginPassword: UITextField!
+  @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
   
   var currentUserId: String?
   let appDelegate = UIApplication.shared.delegate as! AppDelegate
@@ -47,9 +48,11 @@ class LoginViewController: UIViewController {
         self.currentUserId = user?.uid
         loggedIn = true
         self.appDelegate.loggedInId = (user?.uid)!
+        self.activityIndicator.startAnimating()
       } else {
         loggedIn = false
         self.appDelegate.loggedInId = ""
+        self.activityIndicator.stopAnimating()
       }
       let usersReference = Database.database().reference(withPath: "members")
       usersReference.observe(.value, with: {
@@ -60,8 +63,9 @@ class LoginViewController: UIViewController {
             let values: [String: Any] = ["email": thisUser.email as Any, "firstName": thisUser.firstName as Any, "lastName": thisUser.lastName as Any,  "online": loggedIn]
             let userRef = usersReference.child(self.currentUserId!)
             userRef.setValue(values)
-            if user?.uid != nil && loggedIn {//!self.appDelegate.backgroundMode {
+            if user?.uid != nil && loggedIn {
               self.performSegue(withIdentifier: self.loginToList, sender: self)
+              self.activityIndicator.stopAnimating()
             } else {
               self.textFieldLoginEmail.text = ""
               self.textFieldLoginEmail.becomeFirstResponder()

@@ -23,18 +23,21 @@
 import UIKit
 import Firebase
 
-class GroceryListTableViewController: UITableViewController {
+class GroceryListTableViewController: UITableViewController, UIPickerViewDelegate, UIPickerViewDataSource {
 
   // MARK: Constants
   let listToUsers = "ListToUsers"
   
   // MARK: Properties 
   var items: [GroceryItem] = []
+  var currentShoppingList: [GroceryItem]  = []
+  var remainingItems: [GroceryItem] = []
   var user: User!
   var allMembers:[User]!
   var currentUserId: String!
   
   var userCountBarButtonItem: UIBarButtonItem!
+  @IBOutlet var refreshBarButtonItem: UIBarButtonItem!
   let groceryItemsReference = Database.database().reference(withPath: "grocery-items")
   let usersReference = Database.database().reference(withPath: "members")
   
@@ -51,6 +54,7 @@ class GroceryListTableViewController: UITableViewController {
                                              target: self,
                                              action: #selector(userCountButtonDidTouch))
     navigationItem.leftBarButtonItem = userCountBarButtonItem
+    refreshBarButtonItem.isEnabled = false
     
     allMembers = []
     usersReference.observe(.value, with: {
@@ -68,15 +72,22 @@ class GroceryListTableViewController: UITableViewController {
       print(snapshot)
     })
     
-    groceryItemsReference.queryOrdered(byChild: "completed").observe(.value, with: {
+    groceryItemsReference.queryOrdered(byChild: "currentList").observe(.value, with: {
       (snapshot) in
-      var newItems: [GroceryItem] = []
+      var newItems: [GroceryItem] = [], newSLItems: [GroceryItem] = [], remItems: [GroceryItem] = []
       for item in snapshot.children {
         let groceryItem = GroceryItem(snapshot:item as! DataSnapshot)
+        if groceryItem.inCurrentList {
+          newSLItems.append(groceryItem)
+        } else {
+          remItems.append(groceryItem)
+        }
         newItems.append(groceryItem)
       }
       
       self.items = newItems
+      self.currentShoppingList = newSLItems
+      self.remainingItems = remItems
       self.tableView.reloadData()
     })
     
@@ -113,51 +124,23 @@ class GroceryListTableViewController: UITableViewController {
   // MARK: UITableView Delegate methods
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return items.count
+    return currentShoppingList.count
   }
   
   override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
     return 30.0
   }
   
+  var numberCompleted = 0
+  
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "ItemCell", for: indexPath)
-    let groceryItem = items[indexPath.row]
-    
+    let groceryItem = currentShoppingList[indexPath.row]
     cell.textLabel?.text = groceryItem.name
-    
-    toggleCellCheckbox(cell, isCompleted: groceryItem.completed)
-    
-    return cell
-  }
-  
-  override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-    return true
-  }
-  
-  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
-    if editingStyle == .delete {
-      let groceryItem = items[indexPath.row]
-//      groceryItem.ref?.removeValue()
-      groceryItem.ref?.setValue(nil)
-      items.remove(at: indexPath.row)
-      tableView.reloadData()
+    if indexPath.row == 0 {
+      numberCompleted = 0
     }
-  }
-  
-  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    guard let cell = tableView.cellForRow(at: indexPath) else { return }
-    var groceryItem = items[indexPath.row]
-    let toggledCompletion = !groceryItem.completed
-    
-    toggleCellCheckbox(cell, isCompleted: toggledCompletion)
-    groceryItem.completed = toggledCompletion
-    groceryItem.ref?.updateChildValues(["completed": toggledCompletion])
-    tableView.reloadData()
-  }
-  
-  func toggleCellCheckbox(_ cell: UITableViewCell, isCompleted: Bool) {
-    if !isCompleted {
+    if !groceryItem.completed {
       cell.accessoryType = .none
       cell.textLabel?.textColor = UIColor.black
       cell.detailTextLabel?.textColor = UIColor.black
@@ -165,36 +148,128 @@ class GroceryListTableViewController: UITableViewController {
       cell.accessoryType = .checkmark
       cell.textLabel?.textColor = UIColor.gray
       cell.detailTextLabel?.textColor = UIColor.gray
+      numberCompleted += 1
+    }
+    if indexPath.row == currentShoppingList.count - 1 && numberCompleted > 0 {
+      refreshBarButtonItem.isEnabled = true
+    } else {
+      refreshBarButtonItem.isEnabled = false
+    }
+  
+    return cell
+  }
+  
+  
+  override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+    return true
+  }
+  
+  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+    if editingStyle == .delete {
+      let groceryItem = currentShoppingList[indexPath.row]
+      groceryItem.ref?.updateChildValues(["completed": false, "currentList": false])
+      currentShoppingList.remove(at: indexPath.row)
+      tableView.reloadData()
     }
   }
   
+  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    guard let cell = tableView.cellForRow(at: indexPath) else { return }
+    var groceryItem = currentShoppingList[indexPath.row]
+    if groceryItem.completed {
+      cell.accessoryType = .none
+      cell.textLabel?.textColor = UIColor.black
+      cell.detailTextLabel?.textColor = UIColor.black
+      refreshBarButtonItem.isEnabled = false
+      groceryItem.completed = false
+      groceryItem.ref?.updateChildValues(["completed": false])
+      groceryItem.inCurrentList = true
+    } else {
+      cell.accessoryType = .checkmark
+      cell.textLabel?.textColor = UIColor.gray
+      cell.detailTextLabel?.textColor = UIColor.gray
+      refreshBarButtonItem.isEnabled = true
+      groceryItem.completed = true
+      groceryItem.ref?.updateChildValues(["completed": true])
+      groceryItem.inCurrentList = false
+    }
+    //    groceryItem.ref?.updateChildValues(["currentList": false])
+    //    currentShoppingList.remove(at: indexPath.row)
+    tableView.reloadData()
+  }
+  
+  func toggleCellCheckbox(_ cell: UITableViewCell, index: Int, groceryItem: GroceryItem) {
+    var currentGroceryItem = groceryItem
+    if !groceryItem.completed {
+      cell.accessoryType = .none
+      cell.textLabel?.textColor = UIColor.black
+      cell.detailTextLabel?.textColor = UIColor.black
+      refreshBarButtonItem.isEnabled = false
+    } else {
+      cell.accessoryType = .checkmark
+      cell.textLabel?.textColor = UIColor.gray
+      cell.detailTextLabel?.textColor = UIColor.gray
+      refreshBarButtonItem.isEnabled = true
+      currentGroceryItem.inCurrentList = false
+      currentShoppingList.remove(at: index)
+      currentGroceryItem.ref?.updateChildValues(["currentList": false])
+    }
+  }
+  
+  @IBAction func refreshButtonDidTouch(_ sender: AnyObject) {
+    for groceryItem in currentShoppingList {
+      if groceryItem.completed {
+        groceryItem.ref?.updateChildValues(["currentList": false])
+      }
+    }
+    self.tableView.reloadData()
+  }
+  
   // MARK: Add Item
+
+  var pickerView = UIPickerView()
+  var typeValue = String()
+  var alert: UIAlertController!
   
   @IBAction func addButtonDidTouch(_ sender: AnyObject) {
-    let alert = UIAlertController(title: "Grocery Item",
-                                  message: "Add an Item",
+    alert = UIAlertController(title: "Groceries",
+                                  message: "Prepare A List",
                                   preferredStyle: .alert)
+    alert.isModalInPopover = true
     
-    let saveAction = UIAlertAction(title: "Save",
+    alert.addTextField()
+    self.alert.textFields![0].placeholder = "Add an Item"
+    
+    pickerView = UIPickerView(frame: CGRect(x: 0, y: 90, width: 260, height: (self.view.frame.height * 0.60) * 0.5))
+    pickerView.dataSource = self
+    pickerView.delegate = self
+    
+    alert.view.addSubview(pickerView)
+    
+    let addToListAction = UIAlertAction(title: "Add to List",
                                    style: .default) { action in
-      let textField = alert.textFields![0] 
+      let textField = self.alert.textFields![0]
       let groceryItem = GroceryItem(name: textField.text!,
+                                    currentList: true,
                                     completed: false)
       self.items.append(groceryItem)
+      self.currentShoppingList.append(groceryItem)
       self.tableView.reloadData()
                                     
       let groceryItemRef = self.groceryItemsReference.child(textField.text!.lowercased())
-      let values: [String: Any] = [ "name": textField.text!.lowercased(), "completed": false]
+      let values: [String: Any] = [ "name": textField.text!.lowercased(), "currentList": true, "completed": false]
       groceryItemRef.setValue(values)
     }
     
     let cancelAction = UIAlertAction(title: "Cancel",
                                      style: .default)
     
-    alert.addTextField()
-    
-    alert.addAction(saveAction)
+    alert.addAction(addToListAction)
     alert.addAction(cancelAction)
+    
+    let viewHeight:NSLayoutConstraint = NSLayoutConstraint(item: alert.view, attribute: NSLayoutAttribute.height, relatedBy: NSLayoutRelation.equal, toItem: nil, attribute: NSLayoutAttribute.notAnAttribute, multiplier: 1, constant: self.view.frame.height * 0.60)
+    
+    alert.view.addConstraint(viewHeight);
     
     present(alert, animated: true, completion: nil)
   }
@@ -207,6 +282,36 @@ class GroceryListTableViewController: UITableViewController {
     if segue.identifier == listToUsers {
       let controller = segue.destination as! OnlineUsersTableViewController
       controller.currentUserId = self.currentUserId
+    }
+  }
+  
+  //MARK - PickerView
+  
+  func numberOfComponents(in pickerView: UIPickerView) -> Int {
+    return 1
+  }
+  
+  func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+    return self.remainingItems.count + 1
+  }
+  
+  func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+    if row == 0 {
+      return "Add an Item"
+    }    
+    return self.remainingItems[row - 1].name
+  }
+  
+  func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+    let textField = self.alert.textFields![0]
+    switch row {
+    case 0:
+      textField.text = ""
+      textField.placeholder = "Add an Item"
+      break
+    default:
+      textField.text = items[row - 1].name
+      break
     }
   }
 }

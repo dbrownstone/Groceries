@@ -29,10 +29,12 @@ struct GroceryItem {
   let name: String
   let ref: DatabaseReference?
   var completed: Bool
+  var inCurrentList: Bool
   
-  init(name: String, completed: Bool, key: String = "") {
+  init(name: String, currentList: Bool, completed: Bool, key: String = "") {
     self.key = key
     self.name = name
+    self.inCurrentList = currentList
     self.completed = completed
     self.ref = nil
   }
@@ -41,6 +43,7 @@ struct GroceryItem {
     key = snapshot.key
     let snapshotValue = snapshot.value as! [String: AnyObject]
     name = snapshotValue["name"] as! String
+    self.inCurrentList = snapshotValue["currentList"] as! Bool
     completed = snapshotValue["completed"] as! Bool
     ref = snapshot.ref
   }
@@ -48,6 +51,7 @@ struct GroceryItem {
   func toAnyObject() -> Any {
     return [
       "name": name,
+      "currentList": inCurrentList,
       "completed": completed
     ]
   }
