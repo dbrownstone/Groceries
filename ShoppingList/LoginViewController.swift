@@ -31,28 +31,28 @@ class LoginViewController: UIViewController {
   // MARK: Outlets
   @IBOutlet weak var textFieldLoginEmail: UITextField!
   @IBOutlet weak var textFieldLoginPassword: UITextField!
-  @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
   
   var currentUserId: String?
   let appDelegate = UIApplication.shared.delegate as! AppDelegate
+  var sv: UIView?
   
   override func viewDidLoad() {
     var listener: AuthStateDidChangeListenerHandle!
     var loggedIn = false
     
     self.textFieldLoginEmail.becomeFirstResponder()
-    
+    sv = UIViewController.displaySpinner(onView: self.view)
     listener = Auth.auth().addStateDidChangeListener {
       auth, user in
       if user != nil {
         self.currentUserId = user?.uid
         loggedIn = true
         self.appDelegate.loggedInId = (user?.uid)!
-        self.activityIndicator.startAnimating()
+        
       } else {
         loggedIn = false
         self.appDelegate.loggedInId = ""
-        self.activityIndicator.stopAnimating()
+        UIViewController.removeSpinner(spinner: self.sv!)
       }
       let usersReference = Database.database().reference(withPath: "members")
       usersReference.observe(.value, with: {
@@ -65,7 +65,7 @@ class LoginViewController: UIViewController {
             userRef.setValue(values)
             if user?.uid != nil && loggedIn {
               self.performSegue(withIdentifier: self.loginToList, sender: self)
-              self.activityIndicator.stopAnimating()
+              UIViewController.removeSpinner(spinner: self.sv!)
             } else {
               self.textFieldLoginEmail.text = ""
               self.textFieldLoginEmail.becomeFirstResponder()
@@ -80,6 +80,7 @@ class LoginViewController: UIViewController {
   // MARK: Actions
   @IBAction func loginDidTouch(_ sender: AnyObject) {
     Auth.auth().signIn(withEmail: textFieldLoginEmail.text!, password: textFieldLoginPassword.text!)
+    sv = UIViewController.displaySpinner(onView: self.view)
   }
 
   var values: [String : AnyObject]?
@@ -194,4 +195,27 @@ extension LoginViewController: UITextFieldDelegate {
     return true
   }
   
+}
+
+extension UIViewController {
+  class func displaySpinner(onView : UIView) -> UIView {
+    let spinnerView = UIView.init(frame: onView.bounds)
+    spinnerView.backgroundColor = UIColor.init(red: 0.5, green: 0.5, blue: 0.5, alpha: 0.5)
+    let ai = UIActivityIndicatorView.init(activityIndicatorStyle: .whiteLarge)
+    ai.startAnimating()
+    ai.center = spinnerView.center
+    
+    DispatchQueue.main.async {
+      spinnerView.addSubview(ai)
+      onView.addSubview(spinnerView)
+    }
+    
+    return spinnerView
+  }
+  
+  class func removeSpinner(spinner :UIView) {
+    DispatchQueue.main.async {
+      spinner.removeFromSuperview()
+    }
+  }
 }
