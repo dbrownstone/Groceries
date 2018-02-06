@@ -32,6 +32,8 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   var items: [GroceryItem] = []
   var currentShoppingList: [GroceryItem]  = []
   var remainingItems: [GroceryItem] = []
+  var toBeAddedByName: [String] = []
+  var toBeAdded: [GroceryItem] = []
   var user: User!
   var allMembers:[User]!
   var currentUserId: String!
@@ -180,7 +182,6 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       cell.accessoryType = .none
       cell.textLabel?.textColor = UIColor.black
       cell.detailTextLabel?.textColor = UIColor.black
-      refreshBarButtonItem.isEnabled = false
       groceryItem.completed = false
       groceryItem.ref?.updateChildValues(["completed": false])
       groceryItem.inCurrentList = true
@@ -193,27 +194,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       groceryItem.ref?.updateChildValues(["completed": true])
       groceryItem.inCurrentList = false
     }
-    //    groceryItem.ref?.updateChildValues(["currentList": false])
-    //    currentShoppingList.remove(at: indexPath.row)
     tableView.reloadData()
-  }
-  
-  func toggleCellCheckbox(_ cell: UITableViewCell, index: Int, groceryItem: GroceryItem) {
-    var currentGroceryItem = groceryItem
-    if !groceryItem.completed {
-      cell.accessoryType = .none
-      cell.textLabel?.textColor = UIColor.black
-      cell.detailTextLabel?.textColor = UIColor.black
-      refreshBarButtonItem.isEnabled = false
-    } else {
-      cell.accessoryType = .checkmark
-      cell.textLabel?.textColor = UIColor.gray
-      cell.detailTextLabel?.textColor = UIColor.gray
-      refreshBarButtonItem.isEnabled = true
-      currentGroceryItem.inCurrentList = false
-      currentShoppingList.remove(at: index)
-      currentGroceryItem.ref?.updateChildValues(["currentList": false])
-    }
   }
   
   @IBAction func refreshButtonDidTouch(_ sender: AnyObject) {
@@ -246,19 +227,23 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     
     alert.view.addSubview(pickerView)
     
-    let addToListAction = UIAlertAction(title: "Add to List",
-                                   style: .default) { action in
-      let textField = self.alert.textFields![0]
-      let groceryItem = GroceryItem(name: textField.text!,
-                                    currentList: true,
-                                    completed: false)
-      self.items.append(groceryItem)
-      self.currentShoppingList.append(groceryItem)
+    let addToListAction = UIAlertAction(title: "Add to List", style: .default) {
+      action in
+      var thisGroceryItem: GroceryItem!
+      for groceryItem in self.toBeAdded {
+        thisGroceryItem = groceryItem
+        thisGroceryItem.inCurrentList =  true
+        thisGroceryItem.completed =  false
+        thisGroceryItem.toBeAddedToCurrentList = false
+        self.items.append(thisGroceryItem)
+        self.currentShoppingList.append(thisGroceryItem)
+        let groceryItemRef = self.groceryItemsReference.child(thisGroceryItem.name)
+        let values: [String: Any] = [ "name": thisGroceryItem.name.lowercased(), "currentList": true, "completed": false]
+        groceryItemRef.setValue(values)
+      }
       self.tableView.reloadData()
-                                    
-      let groceryItemRef = self.groceryItemsReference.child(textField.text!.lowercased())
-      let values: [String: Any] = [ "name": textField.text!.lowercased(), "currentList": true, "completed": false]
-      groceryItemRef.setValue(values)
+      
+      
     }
     
     let cancelAction = UIAlertAction(title: "Cancel",
@@ -288,6 +273,8 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   //MARK - PickerView
   
   func numberOfComponents(in pickerView: UIPickerView) -> Int {
+    self.toBeAdded = []
+    self.toBeAddedByName = []
     return 1
   }
   
@@ -295,11 +282,25 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     return self.remainingItems.count + 1
   }
   
-  func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+  func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
+    return 20
+  }
+  
+  func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
+    var pickerLabel: UILabel? = (view as? UILabel)
+    if pickerLabel == nil {
+      pickerLabel = UILabel()
+      pickerLabel?.font = UIFont(name: "Helvetica Neue", size: 14)
+      pickerLabel?.textAlignment = .center
+    }
     if row == 0 {
-      return "Add an Item"
-    }    
-    return self.remainingItems[row - 1].name
+      pickerLabel?.text = "Add an Item"
+    } else {
+      pickerLabel?.text = (self.remainingItems[row - 1].name).capitalized
+    }
+//    pickerLabel?.textColor = UIColor.blue
+    
+    return pickerLabel!
   }
   
   func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
@@ -310,7 +311,14 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       textField.placeholder = "Add an Item"
       break
     default:
-      textField.text = items[row - 1].name
+      textField.text = (self.remainingItems[row - 1].name).capitalized
+      if let index = self.toBeAddedByName.index(of:self.remainingItems[row - 1].name) {
+          self.toBeAdded.remove(at: index)
+          self.toBeAddedByName.remove(at: index)
+        } else {
+        self.toBeAdded.append(self.remainingItems[row - 1])
+        self.toBeAddedByName.append(self.remainingItems[row - 1].name)
+      }
       break
     }
   }
