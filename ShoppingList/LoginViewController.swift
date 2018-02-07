@@ -47,6 +47,7 @@ class LoginViewController: UIViewController {
       if user != nil {
         self.currentUserId = user?.uid
         loggedIn = true
+        self.textFieldLoginEmail.text = user?.email
         self.appDelegate.loggedInId = (user?.uid)!
       } else {
         loggedIn = false

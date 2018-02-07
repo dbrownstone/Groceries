@@ -341,24 +341,26 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       break
     default:
       textField.text = (self.remainingItems[row - 1].name).capitalized
-      self.addTheItem(textField: textField.text!, row: row - 1)
+      self.addTheItem(textField: textField, row: row - 1)
       messageLabel.isHidden = true
       break
     }
   }
   
-  func addTheItem(textField: String, row: Int) {
-    if let index = self.toBeAddedByName.index(of:textField) {
+  func addTheItem(textField: UITextField, row: Int) {
+    if let index = self.toBeAddedByName.index(of:textField.text!) {
       self.toBeAdded.remove(at: index)
       self.toBeAddedByName.remove(at: index)
+      textField.text = ""
+      textField.placeholder = "Add an Item"
     } else {
       if row == 0 {
-        let item = GroceryItem(name: textField, currentList: true, completed: false)
+        let item = GroceryItem(name: textField.text!, currentList: true, completed: false)
         self.toBeAdded.append(item)
       } else {
         self.toBeAdded.append(self.remainingItems[row])
       }
-      self.toBeAddedByName.append(textField)
+      self.toBeAddedByName.append(textField.text!)
     }
   }
   
@@ -368,7 +370,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
     resignFirstResponder()
-    self.addTheItem(textField: textField.text!, row: 0)
+    self.addTheItem(textField: textField, row: 0)
     return true
   }
 }
