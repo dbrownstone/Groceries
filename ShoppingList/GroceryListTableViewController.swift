@@ -225,6 +225,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     return result
   }
   
+  var messageLabel: UILabel!
   @IBAction func addButtonDidTouch(_ sender: AnyObject) {
     alert = UIAlertController(title: "Groceries",
                                   message: "Prepare A List",
@@ -232,6 +233,14 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     alert.isModalInPopover = true
     
     alert.addTextField()
+    
+    let label = UILabel(frame: CGRect(x: 20, y: 110, width: 260, height: 20))
+    label.font = UIFont(name: "HelveticaNeue", size: 12)
+    label.text = "Touch 'Return' to complete"
+    label.isHidden = true
+    messageLabel = label
+    alert.view.addSubview(label)
+    
     self.alert.textFields![0].placeholder = "Add an Item"
     self.alert.textFields![0].delegate = self
     
@@ -328,17 +337,12 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     case 0:
       textField.text = ""
       textField.placeholder = "Add an Item"
+      messageLabel.isHidden = false
       break
     default:
       textField.text = (self.remainingItems[row - 1].name).capitalized
       self.addTheItem(textField: textField.text!, row: row - 1)
-//      if let index = self.toBeAddedByName.index(of:self.remainingItems[row - 1].name) {
-//          self.toBeAdded.remove(at: index)
-//          self.toBeAddedByName.remove(at: index)
-//        } else {
-//        self.toBeAdded.append(self.remainingItems[row - 1])
-//        self.toBeAddedByName.append(self.remainingItems[row - 1].name)
-//      }
+      messageLabel.isHidden = true
       break
     }
   }
@@ -356,6 +360,10 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       }
       self.toBeAddedByName.append(textField)
     }
+  }
+  
+  func textFieldDidBeginEditing(_ textField: UITextField) {
+    messageLabel.isHidden = false
   }
   
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
