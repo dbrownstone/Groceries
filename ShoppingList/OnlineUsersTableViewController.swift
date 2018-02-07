@@ -25,17 +25,17 @@ import Firebase
 
 class OnlineUsersTableViewController: UITableViewController {
   
-  // MARK: Constants
+  // MARK: - Constants
   let userCell = "UserCell"
   let usersReference = Database.database().reference(withPath: "members")
   let appDelegate = UIApplication.shared.delegate as! AppDelegate
 
   var currentUserId: String!
   
-  // MARK: Properties
+  // MARK: - Properties
   var currentUsers: [User] = []
   
-  // MARK: UIViewController Lifecycle
+  // MARK: - UIViewController Lifecycle
   override func viewDidLoad() {
     super.viewDidLoad()
     usersReference.observe(.value, with: {
@@ -51,7 +51,7 @@ class OnlineUsersTableViewController: UITableViewController {
     })
   }
   
-  // MARK: UITableView Delegate methods
+  // MARK: - UITableView Delegate methods
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return currentUsers.count
@@ -64,7 +64,7 @@ class OnlineUsersTableViewController: UITableViewController {
     return cell
   }
   
-  // MARK: Actions
+  // MARK: - Actions
   
   @IBAction func signoutButtonPressed(_ sender: AnyObject) {
     do {

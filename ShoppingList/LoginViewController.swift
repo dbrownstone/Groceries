@@ -25,10 +25,10 @@ import Firebase
 
 class LoginViewController: UIViewController {
   
-  // MARK: Constants
+  // MARK: - Constants
   let loginToList = "LoginToList"
   
-  // MARK: Outlets
+  // MARK: - Outlets
   @IBOutlet weak var textFieldLoginEmail: UITextField!
   @IBOutlet weak var textFieldLoginPassword: UITextField!
   
@@ -77,7 +77,7 @@ class LoginViewController: UIViewController {
     }
   }
   
-  // MARK: Actions
+  // MARK: - Actions
   @IBAction func loginDidTouch(_ sender: AnyObject) {
     Auth.auth().signIn(withEmail: textFieldLoginEmail.text!, password: textFieldLoginPassword.text!)
     sv = UIViewController.displaySpinner(onView: self.view)
@@ -193,8 +193,7 @@ extension LoginViewController: UITextFieldDelegate {
       self.loginDidTouch(textField)
     }
     return true
-  }
-  
+  }  
 }
 
 extension UIViewController {

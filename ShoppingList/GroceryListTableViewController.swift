@@ -25,10 +25,10 @@ import Firebase
 
 class GroceryListTableViewController: UITableViewController, UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
 
-  // MARK: Constants
+  // MARK: - Constants
   let listToUsers = "ListToUsers"
   
-  // MARK: Properties 
+  // MARK: - Properties
   var items: [GroceryItem] = []
   var currentShoppingList: [GroceryItem]  = []
   var remainingItems: [GroceryItem] = []
@@ -43,8 +43,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   let groceryItemsReference = Database.database().reference(withPath: "grocery-items")
   let usersReference = Database.database().reference(withPath: "members")
   
-  // MARK: UIViewController Lifecycle
-  
+  // MARK: - UIViewController Lifecycle
   override func viewDidLoad() {
     super.viewDidLoad()
     
@@ -123,7 +122,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       self.userCountBarButtonItem.tintColor = UIColor.white
     })
   }
-  // MARK: UITableView Delegate methods
+  // MARK: - UITableView Delegate methods
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return currentShoppingList.count
@@ -206,7 +205,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     self.tableView.reloadData()
   }
   
-  // MARK: Add Item
+  // MARK: - Add Item
 
   var pickerView = UIPickerView()
   var typeValue = String()
