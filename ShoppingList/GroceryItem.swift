@@ -33,7 +33,7 @@ struct GroceryItem {
   var toBeAddedToCurrentList: Bool
   
   init(name: String, currentList: Bool, completed: Bool, key: String = "") {
-    self.key = key
+    self.key = name
     self.name = name
     self.inCurrentList = currentList
     self.toBeAddedToCurrentList = false

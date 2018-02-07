@@ -48,7 +48,6 @@ class LoginViewController: UIViewController {
         self.currentUserId = user?.uid
         loggedIn = true
         self.appDelegate.loggedInId = (user?.uid)!
-        
       } else {
         loggedIn = false
         self.appDelegate.loggedInId = ""

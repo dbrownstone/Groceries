@@ -23,7 +23,7 @@
 import UIKit
 import Firebase
 
-class GroceryListTableViewController: UITableViewController, UIPickerViewDelegate, UIPickerViewDataSource {
+class GroceryListTableViewController: UITableViewController, UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
 
   // MARK: Constants
   let listToUsers = "ListToUsers"
@@ -212,6 +212,19 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   var typeValue = String()
   var alert: UIAlertController!
   
+  func arrayContainsGroceryItem(list: NSArray, item: GroceryItem) -> Int {
+    var result = -1
+    var index = 0
+    for anItem in list {
+      if (anItem as! GroceryItem).name == item.name {
+        result = index
+        break
+      }
+      index = index + 1
+    }
+    return result
+  }
+  
   @IBAction func addButtonDidTouch(_ sender: AnyObject) {
     alert = UIAlertController(title: "Groceries",
                                   message: "Prepare A List",
@@ -220,6 +233,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     
     alert.addTextField()
     self.alert.textFields![0].placeholder = "Add an Item"
+    self.alert.textFields![0].delegate = self
     
     pickerView = UIPickerView(frame: CGRect(x: 0, y: 90, width: 260, height: (self.view.frame.height * 0.60) * 0.5))
     pickerView.dataSource = self
@@ -235,7 +249,12 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
         thisGroceryItem.inCurrentList =  true
         thisGroceryItem.completed =  false
         thisGroceryItem.toBeAddedToCurrentList = false
+        let index = self.arrayContainsGroceryItem(list: self.items as NSArray, item: groceryItem)
+        if index > -1 {
+          self.items.remove(at:index)
+        }
         self.items.append(thisGroceryItem)
+        
         self.currentShoppingList.append(thisGroceryItem)
         let groceryItemRef = self.groceryItemsReference.child(thisGroceryItem.name)
         let values: [String: Any] = [ "name": thisGroceryItem.name.lowercased(), "currentList": true, "completed": false]
@@ -283,14 +302,14 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   }
   
   func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
-    return 20
+    return 30
   }
   
   func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
     var pickerLabel: UILabel? = (view as? UILabel)
     if pickerLabel == nil {
       pickerLabel = UILabel()
-      pickerLabel?.font = UIFont(name: "Helvetica Neue", size: 14)
+      pickerLabel?.font = UIFont(name: "Helvetica Neue", size: 18)
       pickerLabel?.textAlignment = .center
     }
     if row == 0 {
@@ -312,14 +331,36 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       break
     default:
       textField.text = (self.remainingItems[row - 1].name).capitalized
-      if let index = self.toBeAddedByName.index(of:self.remainingItems[row - 1].name) {
-          self.toBeAdded.remove(at: index)
-          self.toBeAddedByName.remove(at: index)
-        } else {
-        self.toBeAdded.append(self.remainingItems[row - 1])
-        self.toBeAddedByName.append(self.remainingItems[row - 1].name)
-      }
+      self.addTheItem(textField: textField.text!, row: row - 1)
+//      if let index = self.toBeAddedByName.index(of:self.remainingItems[row - 1].name) {
+//          self.toBeAdded.remove(at: index)
+//          self.toBeAddedByName.remove(at: index)
+//        } else {
+//        self.toBeAdded.append(self.remainingItems[row - 1])
+//        self.toBeAddedByName.append(self.remainingItems[row - 1].name)
+//      }
       break
     }
+  }
+  
+  func addTheItem(textField: String, row: Int) {
+    if let index = self.toBeAddedByName.index(of:textField) {
+      self.toBeAdded.remove(at: index)
+      self.toBeAddedByName.remove(at: index)
+    } else {
+      if row == 0 {
+        let item = GroceryItem(name: textField, currentList: true, completed: false)
+        self.toBeAdded.append(item)
+      } else {
+        self.toBeAdded.append(self.remainingItems[row])
+      }
+      self.toBeAddedByName.append(textField)
+    }
+  }
+  
+  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    resignFirstResponder()
+    self.addTheItem(textField: textField.text!, row: 0)
+    return true
   }
 }
