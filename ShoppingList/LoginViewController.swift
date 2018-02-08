@@ -48,6 +48,7 @@ class LoginViewController: UIViewController {
         self.currentUserId = user?.uid
         loggedIn = true
         self.textFieldLoginEmail.text = user?.email
+        self.textFieldLoginEmail.resignFirstResponder()
         self.appDelegate.loggedInId = (user?.uid)!
       } else {
         loggedIn = false

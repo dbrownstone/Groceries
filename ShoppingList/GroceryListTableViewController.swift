@@ -70,7 +70,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     })
     
     groceryItemsReference.observe(.value, with: {snapshot in
-      print(snapshot)
+//      print(snapshot)
     })
     
     groceryItemsReference.queryOrdered(byChild: "currentList").observe(.value, with: {
