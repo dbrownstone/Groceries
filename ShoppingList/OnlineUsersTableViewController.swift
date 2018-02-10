@@ -65,7 +65,9 @@ class OnlineUsersTableViewController: UITableViewController {
   }
   
   // MARK: - Actions
+  
   /// signOutButtonPressed logs the current user out
+  
   @IBAction func signoutButtonPressed(_ sender: AnyObject) {
     do {
       try Auth.auth().signOut()

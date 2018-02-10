@@ -243,7 +243,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     self.alert.textFields![0].placeholder = "Add an Item"
     self.alert.textFields![0].delegate = self
     
-    pickerView = UIPickerView(frame: CGRect(x: 0, y: 90, width: 260, height: (self.view.frame.height * 0.60) * 0.5))
+    pickerView = UIPickerView(frame: CGRect(x: 0, y: 95, width: 260, height: (self.view.frame.height * 0.60) * 0.60))
     pickerView.dataSource = self
     pickerView.delegate = self
     
@@ -269,8 +269,6 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
         groceryItemRef.setValue(values)
       }
       self.tableView.reloadData()
-      
-      
     }
     
     let cancelAction = UIAlertAction(title: "Cancel",
@@ -300,8 +298,8 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   //MARK - PickerView
   
   func numberOfComponents(in pickerView: UIPickerView) -> Int {
-    self.toBeAdded = []
-    self.toBeAddedByName = []
+//    self.toBeAdded = []
+//    self.toBeAddedByName = []
     return 1
   }
   
@@ -310,24 +308,31 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   }
   
   func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
-    return 30
+    return 31
   }
   
   func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
-    var pickerLabel: UILabel? = (view as? UILabel)
-    if pickerLabel == nil {
-      pickerLabel = UILabel()
-      pickerLabel?.font = UIFont(name: "Helvetica Neue", size: 18)
-      pickerLabel?.textAlignment = .center
-    }
+    let resultantView = UIView(frame: CGRect(x: 0, y: 5, width: 260, height: 31))
+    let label = UILabel(frame: CGRect(x: 20, y: 5, width: 200, height: 21))
+    label.textAlignment = .center
+    label.font = UIFont(name: "Helvetica Neue", size: 18)
     if row == 0 {
-      pickerLabel?.text = "Add an Item"
+      label.text = "Add an Item"
     } else {
-      pickerLabel?.text = (self.remainingItems[row - 1].name).capitalized
+      label.text = (self.remainingItems[row - 1].name).capitalized
     }
-//    pickerLabel?.textColor = UIColor.blue
-    
-    return pickerLabel!
+    resultantView.addSubview(label)
+    if row == 0 {
+      return resultantView
+    }
+    let checkbox = UIImageView(frame: CGRect(x:230, y: 5, width:25, height: 25))
+    if self.toBeAddedByName.contains(label.text!) {
+      checkbox.image = UIImage(named: "checked")
+    } else {
+      checkbox.image = UIImage(named: "unchecked")
+    }
+    resultantView.addSubview(checkbox)
+    return resultantView
   }
   
   func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
@@ -344,6 +349,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       messageLabel.isHidden = true
       break
     }
+    pickerView.reloadAllComponents()
   }
   
   func addTheItem(textField: UITextField, row: Int) {
@@ -353,9 +359,10 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       textField.text = ""
       textField.placeholder = "Add an Item"
     } else {
+      let item = GroceryItem(name: textField.text!.lowercased(), currentList: true, completed: false)
       if row == 0 {
-        let item = GroceryItem(name: textField.text!, currentList: true, completed: false)
         self.toBeAdded.append(item)
+        self.remainingItems.append(item)
       } else {
         self.toBeAdded.append(self.remainingItems[row])
       }
@@ -373,3 +380,4 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     return true
   }
 }
+
