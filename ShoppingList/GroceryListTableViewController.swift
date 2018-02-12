@@ -38,6 +38,10 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   var allMembers:[User]!
   var currentUserId: String!
   
+  var selectedItemDescription: UITextField!
+  var selectedItemAmount: UITextField!
+  var seletedItemUnits: UITextField!
+
   var userCountBarButtonItem: UIBarButtonItem!
   @IBOutlet var refreshBarButtonItem: UIBarButtonItem!
   let groceryItemsReference = Database.database().reference(withPath: "grocery-items")
@@ -224,6 +228,40 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     return result
   }
   
+  func prepareTextField(frame: CGRect, theText: String) -> UITextField {
+    let theFrame = frame;
+    let theTextFld: UITextField = UITextField(frame: theFrame);
+    theTextFld.text = theText
+    theTextFld.textColor = .lightGray
+    theTextFld.textAlignment = .center
+    theTextFld.layer.borderWidth = 1.0
+    
+    return theTextFld
+  }
+  
+  func prepareAlertTextFields() -> UIView {
+    let inputFrame = CGRect(x: 0, y: 70, width: 270, height: 35);
+    let inputView: UIView = UIView(frame: inputFrame);
+    
+    let descriptionText = prepareTextField(frame: CGRect(x: 5, y: 5, width: 160, height: 25), theText:"Add an Item")
+    descriptionText.textAlignment = .left
+    self.selectedItemDescription = descriptionText
+    self.selectedItemDescription.delegate = self
+    inputView.addSubview(descriptionText)
+    
+    let amtTxt = prepareTextField(frame: CGRect(x: 173, y: 5, width: 35, height: 25), theText:"Amt")
+    self.selectedItemAmount = amtTxt
+    self.selectedItemAmount.delegate = self
+    inputView.addSubview(amtTxt)
+    
+    let unitsTxt = prepareTextField(frame: CGRect(x: 216, y: 5, width: 50, height: 25), theText:"Units")
+    self.seletedItemUnits = unitsTxt
+    self.seletedItemUnits.delegate = self
+    inputView.addSubview(unitsTxt)
+    
+    return inputView
+  }
+  
   var messageLabel: UILabel!
   @IBAction func addButtonDidTouch(_ sender: AnyObject) {
     alert = UIAlertController(title: "Groceries",
@@ -231,17 +269,16 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
                                   preferredStyle: .alert)
     alert.isModalInPopover = true
     
-    alert.addTextField()
+//    alert.addTextField()
+    alert.view.addSubview(prepareAlertTextFields())
+
     
     let label = UILabel(frame: CGRect(x: 20, y: 110, width: 260, height: 20))
     label.font = UIFont(name: "HelveticaNeue", size: 12)
     label.text = "Touch 'Return' to complete"
-    label.isHidden = true
+    label.isHidden = false
     messageLabel = label
     alert.view.addSubview(label)
-    
-    self.alert.textFields![0].placeholder = "Add an Item"
-    self.alert.textFields![0].delegate = self
     
     pickerView = UIPickerView(frame: CGRect(x: 0, y: 95, width: 260, height: (self.view.frame.height * 0.60) * 0.60))
     pickerView.dataSource = self
@@ -339,45 +376,62 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     let textField = self.alert.textFields![0]
     switch row {
     case 0:
-      textField.text = ""
-      textField.placeholder = "Add an Item"
       messageLabel.isHidden = false
       break
     default:
       textField.text = (self.remainingItems[row - 1].name).capitalized
-      self.addTheItem(textField: textField, row: row - 1)
+      self.addTheItem(row: row - 1)
       messageLabel.isHidden = true
       break
     }
     pickerView.reloadAllComponents()
   }
   
-  func addTheItem(textField: UITextField, row: Int) {
-    if let index = self.toBeAddedByName.index(of:textField.text!) {
+  func addTheItem(row: Int) {
+    if let index = self.toBeAddedByName.index(of:self.selectedItemDescription.text!) {
       self.toBeAdded.remove(at: index)
       self.toBeAddedByName.remove(at: index)
-      textField.text = ""
-      textField.placeholder = "Add an Item"
     } else {
-      let item = GroceryItem(name: textField.text!.lowercased(), currentList: true, completed: false)
+      let item = GroceryItem(name: self.selectedItemDescription.text!.lowercased(), currentList: true, completed: false)
       if row == 0 {
         self.toBeAdded.append(item)
         self.remainingItems.append(item)
       } else {
         self.toBeAdded.append(self.remainingItems[row])
       }
-      self.toBeAddedByName.append(textField.text!)
+      self.toBeAddedByName.append(self.selectedItemDescription.text!)
     }
   }
   
   func textFieldDidBeginEditing(_ textField: UITextField) {
     messageLabel.isHidden = false
+    textField.text = ""
+    textField.textColor = .black
   }
   
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
     resignFirstResponder()
-    self.addTheItem(textField: textField, row: 0)
+    if textField == self.selectedItemDescription {
+      self.selectedItemAmount.text = ""
+      self.selectedItemAmount.becomeFirstResponder()
+    } else if textField == self.selectedItemAmount {
+      self.seletedItemUnits.text = ""
+      self.seletedItemUnits.becomeFirstResponder()
+    }
     return true
+  }
+  
+  func textFieldDidEndEditing(_ textField: UITextField) {
+    if !(self.selectedItemAmount.text!.isEmpty) &&
+      !(self.selectedItemAmount.text!.isEmpty) &&
+      textField == self.seletedItemUnits {
+      self.selectedItemDescription.text = "Add an Item"
+      self.selectedItemAmount.text = "Amt"
+      self.seletedItemUnits.text = "Units"
+      self.addTheItem(row: 0)
+      resignFirstResponder()
+    }
+    
   }
 }
 
