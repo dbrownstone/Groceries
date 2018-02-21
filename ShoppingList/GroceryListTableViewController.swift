@@ -23,7 +23,7 @@
 import UIKit
 import Firebase
 
-class GroceryListTableViewController: UITableViewController, UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
+class GroceryListTableViewController: UITableViewController, UITextFieldDelegate {
 
   // MARK: - Constants
   let listToUsers = "ListToUsers"
@@ -37,12 +37,19 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   var user: User!
   var allMembers:[User]!
   var currentUserId: String!
+  let button: UIButton = {
+    let btn = UIButton(type: UIButtonType.custom)
+    btn.setTitle("Next", for: UIControlState())
+    btn.setTitleColor(UIColor.black, for: UIControlState())
+    btn.frame = CGRect(x: 0, y: 163, width: 106, height: 53)
+    btn.adjustsImageWhenHighlighted = false
+    return btn
+  }()
   
-  var selectedItemDescription: UITextField!
-  var selectedItemAmount: UITextField!
-  var seletedItemUnits: UITextField!
+  var inputTextViews = [UITextField]()
 
   var userCountBarButtonItem: UIBarButtonItem!
+  @IBOutlet var addItemBarButtonItem: UIBarButtonItem!
   @IBOutlet var refreshBarButtonItem: UIBarButtonItem!
   let groceryItemsReference = Database.database().reference(withPath: "grocery-items")
   let usersReference = Database.database().reference(withPath: "members")
@@ -89,27 +96,19 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
         }
         newItems.append(groceryItem)
       }
-      
       self.items = newItems
       self.currentShoppingList = newSLItems
       self.remainingItems = remItems
       self.tableView.reloadData()
+      if self.currentShoppingList.count == 0 {
+        let count = 0
+        self.addButtonDidTouch(count as AnyObject)
+      }
     })
-    
-//    Auth.auth().addStateDidChangeListener {
-//      auth, user in
-//      if let user = user {
-//        self.user = User(uid: user.uid, name: "", email: user.email!)
-//        let currentUserReference = self.usersReference.child(self.user.uid!)
-////        currentUserReference.setValue(self.user.email)
-//        currentUserReference.setValuesForKeys(["fullname": name, "email": email])
-//        currentUserReference.onDisconnectRemoveValue()
-//      }
-//    }
-  }
+}
   
-  override func viewDidAppear(_ animated: Bool) {
-    super.viewDidAppear(animated)
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
     
     usersReference.observe(.value, with: {
       snapshot in
@@ -125,7 +124,13 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       }
       self.userCountBarButtonItem.tintColor = UIColor.white
     })
+    
   }
+ 
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+  }
+  
   // MARK: - UITableView Delegate methods
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -142,6 +147,9 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     let cell = tableView.dequeueReusableCell(withIdentifier: "ItemCell", for: indexPath)
     let groceryItem = currentShoppingList[indexPath.row]
     cell.textLabel?.text = groceryItem.name
+    if groceryItem.quantity > 0 {
+      cell.textLabel?.text = "\(groceryItem.name),  \(groceryItem.quantity)\(groceryItem.units)"
+    }
     if indexPath.row == 0 {
       numberCompleted = 0
     }
@@ -186,6 +194,8 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       cell.textLabel?.textColor = UIColor.black
       cell.detailTextLabel?.textColor = UIColor.black
       groceryItem.completed = false
+      groceryItem.quantity = 0
+      groceryItem.units = " "
       groceryItem.ref?.updateChildValues(["completed": false])
       groceryItem.inCurrentList = true
     } else {
@@ -194,7 +204,7 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
       cell.detailTextLabel?.textColor = UIColor.gray
       refreshBarButtonItem.isEnabled = true
       groceryItem.completed = true
-      groceryItem.ref?.updateChildValues(["completed": true])
+      groceryItem.ref?.updateChildValues(["completed": true, "quantity": 0, "units": " "])
       groceryItem.inCurrentList = false
     }
     tableView.reloadData()
@@ -242,47 +252,47 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   func prepareAlertTextFields() -> UIView {
     let inputFrame = CGRect(x: 0, y: 70, width: 270, height: 35);
     let inputView: UIView = UIView(frame: inputFrame);
+    self.inputTextViews = []
     
     let descriptionText = prepareTextField(frame: CGRect(x: 5, y: 5, width: 160, height: 25), theText:"Add an Item")
     descriptionText.textAlignment = .left
-    self.selectedItemDescription = descriptionText
-    self.selectedItemDescription.delegate = self
+    descriptionText.delegate = self
+    descriptionText.returnKeyType = .next
+    inputTextViews.append(descriptionText)
     inputView.addSubview(descriptionText)
     
     let amtTxt = prepareTextField(frame: CGRect(x: 173, y: 5, width: 35, height: 25), theText:"Amt")
-    self.selectedItemAmount = amtTxt
-    self.selectedItemAmount.delegate = self
+    inputTextViews.append(amtTxt)
+    amtTxt.delegate = self
+    amtTxt.keyboardType = .numberPad
+
     inputView.addSubview(amtTxt)
     
     let unitsTxt = prepareTextField(frame: CGRect(x: 216, y: 5, width: 50, height: 25), theText:"Units")
-    self.seletedItemUnits = unitsTxt
-    self.seletedItemUnits.delegate = self
+    inputTextViews.append(unitsTxt)
+    unitsTxt.delegate = self
+    unitsTxt.returnKeyType = .done
+
     inputView.addSubview(unitsTxt)
     
     return inputView
   }
   
-  var messageLabel: UILabel!
   @IBAction func addButtonDidTouch(_ sender: AnyObject) {
     alert = UIAlertController(title: "Groceries",
                                   message: "Prepare A List",
                                   preferredStyle: .alert)
+
     alert.isModalInPopover = true
     
-//    alert.addTextField()
     alert.view.addSubview(prepareAlertTextFields())
-
     
-    let label = UILabel(frame: CGRect(x: 20, y: 110, width: 260, height: 20))
-    label.font = UIFont(name: "HelveticaNeue", size: 12)
-    label.text = "Touch 'Return' to complete"
-    label.isHidden = false
-    messageLabel = label
-    alert.view.addSubview(label)
-    
-    pickerView = UIPickerView(frame: CGRect(x: 0, y: 95, width: 260, height: (self.view.frame.height * 0.60) * 0.60))
+    pickerView = UIPickerView(frame: CGRect(x: 0, y: 75, width: 260, height: (self.view.frame.height * 0.60) * 0.60))
     pickerView.dataSource = self
     pickerView.delegate = self
+    
+    self.toBeAdded = []
+    self.toBeAddedByName = []
     
     alert.view.addSubview(pickerView)
     
@@ -302,10 +312,11 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
         
         self.currentShoppingList.append(thisGroceryItem)
         let groceryItemRef = self.groceryItemsReference.child(thisGroceryItem.name)
-        let values: [String: Any] = [ "name": thisGroceryItem.name.lowercased(), "currentList": true, "completed": false]
+        let values: [String: Any] = [ "name": thisGroceryItem.name.lowercased(), "currentList": true, "completed": false, "quantity": thisGroceryItem.quantity, "units": thisGroceryItem.units]
         groceryItemRef.setValue(values)
       }
       self.tableView.reloadData()
+
     }
     
     let cancelAction = UIAlertAction(title: "Cancel",
@@ -332,11 +343,89 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
     }
   }
   
-  //MARK - PickerView
+  func addTheItem(row: Int) {
+    if let index = self.toBeAddedByName.index(of:self.self.inputTextViews[0].text!) {
+      self.toBeAdded.remove(at: index)
+      self.toBeAddedByName.remove(at: index)
+    } else {
+      var item = GroceryItem(name: self.inputTextViews[0].text!.lowercased(), currentList: true, completed: false)
+      item.quantity = Int(self.inputTextViews[1].text!)!
+      item.units = self.inputTextViews[2].text!
+      if row < 0 {
+        self.toBeAdded.append(item)
+        self.remainingItems.append(item)
+      } else {
+        self.toBeAdded.append(self.remainingItems[row])
+      }
+      self.toBeAddedByName.append(self.inputTextViews[0].text!)
+    }
+    self.pickerView.reloadAllComponents()
+  }
+
+  @objc func goToNext(sender: UIButton) {
+    DispatchQueue.main.async { () -> Void in
+      sender.isHidden = true
+      sender.removeFromSuperview()
+      NotificationCenter.default.removeObserver(self,name: NSNotification.Name.UIKeyboardWillShow,object: nil)
+      
+      self.inputTextViews[1].resignFirstResponder()
+      self.inputTextViews[2].becomeFirstResponder()
+    }
+  }
+
+  @objc func keyboardWillShow(_ note : Notification) -> Void{
+    DispatchQueue.main.async { () -> Void in
+      self.button.isHidden = false
+      let keyBoardWindow = UIApplication.shared.windows.last
+      self.button.frame = CGRect(x: 0, y: (keyBoardWindow?.frame.size.height)!-53, width: 106, height: 53)
+      self.button.addTarget(self, action: #selector(GroceryListTableViewController.goToNext), for: UIControlEvents.touchUpInside)
+      
+      keyBoardWindow?.addSubview(self.button)
+      keyBoardWindow?.bringSubview(toFront: self.button)
+      
+      UIView.animate(withDuration: (((note.userInfo! as NSDictionary).object(forKey: UIKeyboardAnimationCurveUserInfoKey) as AnyObject).doubleValue)!, delay: 0, options: UIViewAnimationOptions.curveEaseIn, animations: { () -> Void in
+        self.view.frame = self.view.frame.offsetBy(dx: 0, dy: 0)
+      }, completion: { (complete) -> Void in
+        print("Complete")
+      })
+    }
+  }
+
+  func textFieldDidBeginEditing(_ textField: UITextField) {
+    textField.text = ""
+    textField.textColor = .black
+    if textField == self.inputTextViews[1] {
+      NotificationCenter.default.addObserver(self, selector: #selector(GroceryListTableViewController.keyboardWillShow(_:)), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+    }
+  }
+  
+  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    resignFirstResponder()
+    if textField == self.inputTextViews[0] {
+      self.inputTextViews[1].becomeFirstResponder()
+    } else if textField == self.self.inputTextViews[1] {
+      self.inputTextViews[2].becomeFirstResponder()
+    } else { // Done
+      textField.resignFirstResponder()
+      print("SelectedItem: \(self.inputTextViews[0].text!) \(self.inputTextViews[1].text!) \(self.inputTextViews[2].text!)")
+    }
+    
+    return true
+  }
+  
+  func textFieldDidEndEditing(_ textField: UITextField) {
+    textField.textColor = .black
+    if textField == self.inputTextViews[2] {
+        addTheItem(row: -1)
+    }
+  }
+    
+}
+
+extension GroceryListTableViewController: UIPickerViewDelegate, UIPickerViewDataSource {
+  // MARK: - PickerView
   
   func numberOfComponents(in pickerView: UIPickerView) -> Int {
-//    self.toBeAdded = []
-//    self.toBeAddedByName = []
     return 1
   }
   
@@ -373,65 +462,22 @@ class GroceryListTableViewController: UITableViewController, UIPickerViewDelegat
   }
   
   func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-    let textField = self.alert.textFields![0]
     switch row {
     case 0:
-      messageLabel.isHidden = false
+      self.inputTextViews[0].becomeFirstResponder()
+      self.inputTextViews[1].text = "Amt"
+      self.inputTextViews[1].textColor = .lightGray
+      self.inputTextViews[2].text = "Units"
+      self.inputTextViews[2].textColor = .lightGray
       break
     default:
-      textField.text = (self.remainingItems[row - 1].name).capitalized
-      self.addTheItem(row: row - 1)
-      messageLabel.isHidden = true
+      self.inputTextViews[0].text! = (self.remainingItems[row - 1].name).capitalized
+      self.inputTextViews[0].textColor = .black
+//      self.addTheItem(row: row - 1)
+      self.inputTextViews[1].becomeFirstResponder()
       break
     }
     pickerView.reloadAllComponents()
   }
-  
-  func addTheItem(row: Int) {
-    if let index = self.toBeAddedByName.index(of:self.selectedItemDescription.text!) {
-      self.toBeAdded.remove(at: index)
-      self.toBeAddedByName.remove(at: index)
-    } else {
-      let item = GroceryItem(name: self.selectedItemDescription.text!.lowercased(), currentList: true, completed: false)
-      if row == 0 {
-        self.toBeAdded.append(item)
-        self.remainingItems.append(item)
-      } else {
-        self.toBeAdded.append(self.remainingItems[row])
-      }
-      self.toBeAddedByName.append(self.selectedItemDescription.text!)
-    }
-  }
-  
-  func textFieldDidBeginEditing(_ textField: UITextField) {
-    messageLabel.isHidden = false
-    textField.text = ""
-    textField.textColor = .black
-  }
-  
-  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-    resignFirstResponder()
-    if textField == self.selectedItemDescription {
-      self.selectedItemAmount.text = ""
-      self.selectedItemAmount.becomeFirstResponder()
-    } else if textField == self.selectedItemAmount {
-      self.seletedItemUnits.text = ""
-      self.seletedItemUnits.becomeFirstResponder()
-    }
-    return true
-  }
-  
-  func textFieldDidEndEditing(_ textField: UITextField) {
-    if !(self.selectedItemAmount.text!.isEmpty) &&
-      !(self.selectedItemAmount.text!.isEmpty) &&
-      textField == self.seletedItemUnits {
-      self.selectedItemDescription.text = "Add an Item"
-      self.selectedItemAmount.text = "Amt"
-      self.seletedItemUnits.text = "Units"
-      self.addTheItem(row: 0)
-      resignFirstResponder()
-    }
-    
-  }
-}
 
+}

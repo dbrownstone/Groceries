@@ -39,7 +39,9 @@ class LoginViewController: UIViewController {
   override func viewDidLoad() {
     var listener: AuthStateDidChangeListenerHandle!
     var loggedIn = false
-    
+    if !appDelegate.internetIsAvailable {
+      return
+    }
     self.textFieldLoginEmail.becomeFirstResponder()
     sv = UIViewController.displaySpinner(onView: self.view)
     listener = Auth.auth().addStateDidChangeListener {
@@ -78,12 +80,48 @@ class LoginViewController: UIViewController {
     }
   }
   
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    if !appDelegate.internetIsAvailable {
+      showAlert()
+      return
+    }
+  }
+  
   // MARK: - Actions
   @IBAction func loginDidTouch(_ sender: AnyObject) {
-    Auth.auth().signIn(withEmail: textFieldLoginEmail.text!, password: textFieldLoginPassword.text!)
-    sv = UIViewController.displaySpinner(onView: self.view)
+    if appDelegate.internetIsAvailable {
+      Auth.auth().signIn(withEmail: textFieldLoginEmail.text!, password: textFieldLoginPassword.text!) {
+        (user, error) in
+        if error != nil {
+          let alertController = UIAlertController(title: "Error", message: error?.localizedDescription, preferredStyle: .alert)
+          
+          let defaultAction = UIAlertAction(title: "OK", style: .cancel, handler: nil)
+          alertController.addAction(defaultAction)
+          
+          self.present(alertController, animated: true, completion: nil)
+        } else {
+          self.sv = UIViewController.displaySpinner(onView: self.view)
+        }
+      }
+    } else {
+      showAlert()
+    }
   }
 
+  func showAlert() {
+    let alert = UIAlertController(title: "Internet Is Not Available",
+                                  message: "Please try again later.\n\n This app will quit when you touch \'Ok\'",
+                                  preferredStyle: .alert)
+    let cancelAction = UIAlertAction(title: "OK",
+                                     style: .default) {
+                                      action in
+                                      exit(0)
+    }
+    alert.addAction(cancelAction)
+    present(alert, animated: true, completion: nil)
+  }
+  
   var values: [String : AnyObject]?
   @IBAction func signUpDidTouch(_ sender: AnyObject) {
     let alert = UIAlertController(title: "Register",

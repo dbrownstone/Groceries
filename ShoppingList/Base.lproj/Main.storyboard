@@ -230,6 +230,7 @@
                         </rightBarButtonItems>
                     </navigationItem>
                     <connections>
+                        <outlet property="addItemBarButtonItem" destination="QGM-U2-dHv" id="Skz-dw-Amv"/>
                         <outlet property="refreshBarButtonItem" destination="RDy-gO-v6z" id="6O5-dD-sei"/>
                         <segue destination="oUo-Uh-r42" kind="show" identifier="ListToUsers" id="NRC-oz-J58"/>
                     </connections>

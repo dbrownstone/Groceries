@@ -31,6 +31,8 @@ struct GroceryItem {
   var completed: Bool
   var inCurrentList: Bool
   var toBeAddedToCurrentList: Bool
+  var quantity: Int
+  var units: String
   
   init(name: String, currentList: Bool, completed: Bool, key: String = "") {
     self.key = name
@@ -39,6 +41,8 @@ struct GroceryItem {
     self.toBeAddedToCurrentList = false
     self.completed = completed
     self.ref = nil
+    self.quantity = 0
+    self.units = " "
   }
   
   init(snapshot: DataSnapshot) {
@@ -47,6 +51,8 @@ struct GroceryItem {
     name = snapshotValue["name"] as! String
     self.inCurrentList = snapshotValue["currentList"] as! Bool
     completed = snapshotValue["completed"] as! Bool
+    self.quantity = snapshotValue["quantity"] as! Int
+    self.units = snapshotValue["units"] as! String
     ref = snapshot.ref
     self.toBeAddedToCurrentList = false
   }
@@ -55,7 +61,9 @@ struct GroceryItem {
     return [
       "name": name,
       "currentList": inCurrentList,
-      "completed": completed
+      "completed": completed,
+      "quantity": quantity,
+      "units": units
     ]
   }
 }

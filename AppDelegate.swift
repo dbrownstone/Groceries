@@ -29,13 +29,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   var window: UIWindow?
   var loggedInId = ""
   var backgroundMode = false
+  var internetIsAvailable = false
   
   override init() {
-    FirebaseApp.configure()
+    if Connectivity.isConnectedToInternet() {
+      print("Yes! internet is available.")
+      internetIsAvailable = true
+      FirebaseApp.configure()
+      Database.database().isPersistenceEnabled = true
+    } else {
+      internetIsAvailable = false
+      print("No! internet is not available.")
+    }
   }
   
   private func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject : AnyObject]? = [:]) -> Bool {
     UIApplication.shared.statusBarStyle = .lightContent
+    
     return true
   }
 
@@ -46,7 +56,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       for aUser in snapshot.children {
         let thisUser = User(snapshot: aUser as! DataSnapshot)
         if thisUser.uid == self.loggedInId {
-          let values: [String: Any] = ["email": thisUser.email as Any, "firstName": thisUser.firstName as Any, "lastName": thisUser.lastName as Any,  "online": state]
+          let values: [String: Any] = ["email": thisUser.email
+            as Any, "firstName": thisUser.firstName as Any, "lastName": thisUser.lastName as Any,  "online": state]
           let userRef = usersReference.child(self.loggedInId)
           userRef.setValue(values)
           break
