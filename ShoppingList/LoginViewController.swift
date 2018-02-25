@@ -22,6 +22,7 @@
 
 import UIKit
 import Firebase
+import Intents
 
 class LoginViewController: UIViewController {
   
@@ -37,6 +38,11 @@ class LoginViewController: UIViewController {
   var sv: UIView?
   
   override func viewDidLoad() {
+    INPreferences.requestSiriAuthorization {
+      status in
+      print("Status: \(status)")
+    }
+    
     var listener: AuthStateDidChangeListenerHandle!
     var loggedIn = false
     if !appDelegate.internetIsAvailable {

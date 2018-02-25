@@ -26,6 +26,12 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.dbrownstone.firebase.com.SiriList.UserActivity.StartShoppingList</string>
+	</array>
+	<key>Privary - Siri Usage Description</key>
+	<string>Allow Siri to create and eidit shopping lists</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
